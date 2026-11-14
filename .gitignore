@@ -1,0 +1,15 @@
+node_modules/
+.next/
+out/
+.env*
+!.env.example
+.vercel/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+.DS_Store
+*.log
+
+# Generated from pinned MapLibre dependency during prebuild/predev
+public/maplibre/

@@ -1,0 +1,67 @@
+{
+  "name": "safarnav",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "predev": "node scripts/prepare-map.mjs",
+    "prebuild": "node scripts/prepare-map.mjs"
+  },
+  "dependencies": {
+    "@google/genai": "^1.30.0",
+    "@neondatabase/serverless": "^1.0.2",
+    "@turf/turf": "^7.3.0",
+    "date-fns-tz": "^3.2.0",
+    "drizzle-orm": "^0.45.4",
+    "lucide-react": "^0.468.0",
+    "maplibre-gl": "^6.18.0",
+    "next": "^16.0.0",
+    "opening_hours": "^3.9.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "suncalc": "^1.9.0",
+    "tz-lookup": "^6.1.25",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@tailwindcss/postcss": "^4.1.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@types/geojson": "^7946.0.16",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/suncalc": "^1.9.2",
+    "@types/tz-lookup": "^6.1.2",
+    "dotenv": "^17.2.3",
+    "drizzle-kit": "^0.31.6",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^16.0.0",
+    "jsdom": "^26.1.0",
+    "prettier": "^3.10.1",
+    "tailwindcss": "^4.1.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.2",
+    "vitest": "^5.1.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "overrides": {
+    "@esbuild-kit/core-utils": {
+      "esbuild": "^0.25.12"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.1"
+    }
+  }
+}
