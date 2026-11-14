@@ -2,189 +2,138 @@
 
 **Not just the shortest route. The safer one.**
 
-A Next.js route planner that compares routes using mapped infrastructure, expected business opening hours at the time you pass, travel mode and daylight. Every displayed indicator comes from deterministic, inspectable calculations. Gemini provides an optional explanation; it never assigns the score.
+SafarNav compares driving and walking routes using mapped infrastructure, travel time and conditions at the planned departure time. It considers road suitability, lighting, nearby facilities, mapped cameras and expected business opening hours. Its scoring engine evaluates individual sections and gives weaker stretches extra influence on the final indicator.
 
-> Safety scores are estimates based on available infrastructure and mapping data. They do not guarantee personal safety.
+Gemini explains the calculated results; it does not assign scores. A computed summary remains available when the API is unconfigured or unavailable.
 
-## Start locally — no accounts required
+## Features
 
-Use Node.js 22 LTS or newer (Node 24 LTS recommended for deployment), npm, and Git. This project was built on Node 26. The lockfile pins the tested packages.
+- **Route comparison:** compare available routes by infrastructure indicator, distance and travel time.
+- **Place search:** find destinations with autocomplete, landmark lookup and common abbreviations.
+- **Time Machine:** change departure time and recalculate time-dependent factors without fetching route geometry again.
+- **Explainable scoring:** inspect individual factors and sections to understand why routes differ.
+- **Mapped cameras:** view camera counts, their distribution along the route and gaps between nearby areas.
+- **Journey monitoring:** track progress with foreground GPS and receive alerts for upcoming sections below 30/100.
+- **Route summaries:** get a Gemini-generated explanation, with a computed fallback when needed.
+- **Navigation handoff:** open Google Maps with a route-shaping waypoint or review an Uber pickup and destination handoff.
+- **Post-journey feedback:** collect ratings and observations about lighting, activity and route concerns, with optional database persistence.
+- **Accessible interface:** use keyboard-accessible place search, responsive layouts and light or dark themes with tested text contrast.
+- **Demo experience:** explore the workflow with explicitly labelled fictional data.
 
-```bash
-cd "/Users/karanbhura/CODING/VIHAAN X 9.0"
-npm ci
-cp .env.example .env.local
-npm run dev
+Indicators describe available infrastructure, not a probability of personal safety. Google Maps calculates its own directions between waypoints, so the handoff cannot lock every road segment. The current Uber integration opens a handoff; it does not book rides or control the driver's route.
+
+## Prospective features
+
+These ideas are not part of the current release.
+
+- **Deeper Uber integration:** extend the existing handoff with supported ride estimates, booking and trip-status features where partner APIs and permissions allow. Keep route and stop preferences visible before the user confirms a ride.
+- **Feedback-informed scoring:** use post-journey ratings and section observations as additional route evidence. Start with aggregated trends, then evaluate a machine learning model that helps adjust scoring weights and identify changing conditions.
+- **Validated model updates:** compare learned scores with the existing deterministic baseline before deploying changes. Account for sparse feedback, repeated submissions, reporting bias and differences between travel modes. Measure whether predictions improve rather than assuming more feedback makes scores more precise.
+- **Route-specific observations:** let users attach feedback to particular sections and travel times, helping distinguish a recurring issue from a single experience.
+- **Data freshness:** track the age and source of observations so recent, corroborated reports can be distinguished from older records.
+- **Stronger service reliability:** introduce shared caching, durable rate limits and dedicated infrastructure providers for deployments serving more users.
+
+## Implementation techniques
+
+- **Section-based scoring.** The [scoring engine](src/lib/scoring/engine.ts) divides routes into approximately 150-metre sections. It combines the observed-section average with the weakest fifth of the route, preventing a strong average from hiding a poor stretch. [Scoring configuration](src/lib/scoring/config.ts) keeps weights, radii and policy constants separate.
+
+- **Arrival-aware opening hours.** [Opening-hours evaluation](src/lib/scoring/hours.ts) checks schedules at the traveller's estimated passing time in the location's timezone. Missing schedules and unsupported holiday rules remain unknown.
+
+- **Encrypted route snapshots.** [Session handling](src/lib/session.ts) compresses and encrypts route snapshots with AES-256-GCM. Expiring snapshots support rescoring across serverless requests without storing every journey in a database.
+
+- **Controlled provider traffic.** The [Overpass client](src/lib/providers/overpass-client.ts) shares identical in-flight requests, serializes work within a process and observes cooldowns. Requests use [`AbortSignal.timeout()`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal/timeout_static) to bound waiting time. A [fallback adapter](src/lib/providers/infrastructure.ts) retrieves limited Geoapify place data when Overpass fails.
+
+- **Persistent map instances.** The [map component](src/components/Map.tsx) updates GeoJSON sources instead of recreating the map after each route selection. A [build script](scripts/prepare-map.mjs) copies version-matched MapLibre [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API) assets for local delivery.
+
+- **Permission-aware monitoring.** The [journey component](src/components/Journey.tsx) uses [`watchPosition()`](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation/watchPosition) and the [Page Visibility API](https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API). Monitoring pauses when the page is hidden. [Notification handling](src/lib/notifications/) retains on-screen alerts when browser notifications are unavailable.
+
+- **Validated AI output.** The [summary service](src/lib/ai/index.ts) validates structured Gemini responses, rejects unexpected recommendations and prohibited summary text, and falls back to deterministic output.
+
+- **Shared theme tokens.** [Global styles](src/app/globals.css) use [CSS custom properties](https://developer.mozilla.org/en-US/docs/Web/CSS/Using_CSS_custom_properties) for both themes. Browser tests check rendered contrast rather than only checking theme classes.
+
+## Stack and notable libraries
+
+The application uses [Next.js](https://nextjs.org/), [React](https://react.dev/), [TypeScript](https://www.typescriptlang.org/) and [Tailwind CSS](https://tailwindcss.com/), with [Lucide](https://lucide.dev/) icons.
+
+| Library                                                                                                                   | Role                                                                             |
+| ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| [MapLibre GL JS](https://maplibre.org/maplibre-gl-js/docs/)                                                               | Interactive map rendering, route layers and POI interaction.                     |
+| [Turf.js](https://turfjs.org/)                                                                                            | Route slicing, proximity calculations, along-route positions and overlap checks. |
+| [opening_hours.js](https://github.com/opening-hours/opening_hours.js)                                                     | Parses OpenStreetMap business schedules.                                         |
+| [tz-lookup](https://www.npmjs.com/package/tz-lookup) and [date-fns-tz](https://github.com/marnusw/date-fns-tz)            | Coordinate-based timezone lookup and local-time conversion.                      |
+| [SunCalc](https://github.com/mourner/suncalc)                                                                             | Estimates daylight from location and departure time.                             |
+| [Zod](https://zod.dev/)                                                                                                   | Runtime validation of requests, provider responses and AI output.                |
+| [Google Gen AI SDK](https://github.com/googleapis/js-genai)                                                               | Structured Gemini summaries with a computed fallback.                            |
+| [Drizzle ORM](https://orm.drizzle.team/) and [Neon serverless driver](https://neon.com/docs/serverless/serverless-driver) | Typed PostgreSQL persistence for optional journey feedback.                      |
+
+Geographic services include [openrouteservice](https://openrouteservice.org/), [OpenStreetMap](https://www.openstreetmap.org/copyright), [Overpass](https://wiki.openstreetmap.org/wiki/Overpass_API), [Geoapify](https://apidocs.geoapify.com/) and [OpenFreeMap](https://openfreemap.org/).
+
+### Typography
+
+The interface uses locally available [Arial](https://learn.microsoft.com/en-us/typography/font-list/arial), followed by [Helvetica](https://www.myfonts.com/collections/helvetica-font-linotype/) and the browser's generic sans-serif fallback. No custom webfont files are bundled or downloaded by the application stylesheet.
+
+## Project structure
+
+```text
+.
+├── .env.example
+├── .gitignore
+├── README.md
+├── package.json
+├── package-lock.json
+├── next.config.ts
+├── tsconfig.json
+├── drizzle.config.ts
+├── eslint.config.mjs
+├── playwright.config.ts
+├── postcss.config.mjs
+├── vitest.config.mts
+├── docs/
+├── drizzle/
+│   └── meta/
+├── public/
+│   └── maplibre/
+├── scripts/
+├── src/
+│   ├── app/
+│   │   └── api/
+│   │       ├── ai/
+│   │       │   └── route-summary/
+│   │       ├── feedback/
+│   │       ├── geocode/
+│   │       ├── health/
+│   │       ├── pois/
+│   │       ├── routes/
+│   │       │   └── rescore/
+│   │       └── uber/
+│   │           └── link/
+│   ├── components/
+│   ├── lib/
+│   │   ├── ai/
+│   │   ├── cache/
+│   │   ├── db/
+│   │   ├── geo/
+│   │   ├── notifications/
+│   │   ├── providers/
+│   │   ├── scoring/
+│   │   ├── uber/
+│   │   └── validation/
+│   └── types/
+└── tests/
+    └── e2e/
 ```
 
-Open **http://localhost:3000**. Click **Compare routes**. Demo mode is enabled by default, even without an environment file. It uses a fixed New Delhi journey with fictional, explicitly labelled infrastructure; these are not real road directions. Demo feedback is acknowledged without persistence. Map tiles still need an internet connection.
+- [src/app/api/](src/app/api/) contains server-side endpoints for planning, rescoring, summaries and feedback.
+- [src/lib/providers/](src/lib/providers/) isolates external services and demo fixtures from application logic.
+- [src/lib/scoring/](src/lib/scoring/) contains deterministic scoring, schedule evaluation and camera metrics.
+- [public/](public/) contains the SVG application icon, web manifest and notification service worker. MapLibre worker assets are generated during development and builds and excluded from Git. There is no separate image directory.
+- [drizzle/](drizzle/) contains SQL migrations and migration metadata.
+- [tests/](tests/) contains unit and component tests; [tests/e2e/](tests/e2e/) covers browser journeys and theme contrast.
 
-Try Walking and Driving, move Time Machine to late evening, inspect individual sections, click View Summary, review an Uber stop in Driving, then start a journey and finish it manually to test feedback. Location permission is requested only by My location or Start journey.
+## Verification and boundaries
 
-For a production build locally:
+The release has passed 66 automated tests and 10 desktop/mobile browser tests, alongside lint, TypeScript and a production build. Tests use [Vitest](https://vitest.dev/), [Testing Library](https://testing-library.com/) and [Playwright](https://playwright.dev/).
 
-```bash
-npm run build
-npm start
-```
+Provider availability, live Gemini credentials, database persistence and physical-device notification behavior require separate verification. Caches and rate limits are process-local; journey monitoring requires foreground GPS access. The notification service worker does not provide background navigation or offline maps.
 
-Webpack is explicitly selected for development and production because Turbopack's CSS worker could not create its required port in the local build environment. It is a supported Next.js compiler and works on Vercel.
-
-## What is implemented
-
-- Responsive map-first desktop layout and collapsible mobile planning sheet; light/dark UI.
-- Lazy MapLibre map, place markers, route selection, weak-section overlays, POI details, accuracy circle, recentering and attribution.
-- Geoapify search suggestions, current location, map selection, swap, Walking/Driving, up to three ORS alternatives, overlap deduplication.
-- Bounded Overpass infrastructure queries with normalized OSM identifiers, road geometries, tags, opening hours and cache timestamps.
-- Approximately 150 m sections, eight typed mode-specific weights, deterministic scoring, distance-weighted route totals, weakest-section statistics, separate evidence confidence.
-- Time Machine with 15-minute steps over 24 hours, timezone-aware expected passing times, daylight and opening-hours reevaluation. It reuses the server-authenticated geographic snapshot rather than calling routing again.
-- On-demand Gemini structured explanations with validation and computed fallback.
-- Driving handoff preview, optional public-parking candidate, explicit consent, live routing verification and manual-stop fallback.
-- Foreground GPS progress, accuracy, pause/resume, off-route detection, upcoming weak-section alerts, arrival confirmation and discard.
-- Anonymous feedback, Neon/Drizzle persistence and migrations; no login, GPS history or mandatory database dependency for planning.
-- Bounded input validation, cross-origin rejection, rate limits, authenticated encrypted expiring snapshots, provider timeouts, caches, tests and deployment instructions.
-- Web app manifest and icon. **No offline routing or background-navigation service worker.**
-
-## Configure real geographic data
-
-Edit `.env.local` and restart the dev server. Never paste secrets into source files or commit `.env.local`.
-
-| Variable                    | Required?              | What to enter                                                                                                                          |
-| --------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `DEMO_MODE`                 | Yes                    | `false` for real providers; `true` for fixtures. Missing defaults to demo.                                                             |
-| `SESSION_SECRET`            | Real mode              | Generate with `openssl rand -hex 32`. Use the same value across all serverless functions. Rotating it expires existing route sessions. |
-| `ORS_API_KEY`               | Real routing           | Your openrouteservice/HeiGIT API key.                                                                                                  |
-| `ORS_BASE_URL`              | Default supplied       | `https://api.openrouteservice.org`                                                                                                     |
-| `GEOCODING_PROVIDER`        | Default supplied       | `geoapify` (the implemented adapter).                                                                                                  |
-| `GEOCODING_API_KEY`         | Place search           | Your Geoapify key. Without it you can still select points on the map.                                                                  |
-| `GEOCODING_API_URL`         | Default supplied       | Geoapify autocomplete endpoint from `.env.example`.                                                                                    |
-| `INFRASTRUCTURE_FALLBACK` | `geoapify` | Use existing Geoapify key for limited real place evidence during Overpass outages; `none` disables it. Uses account credits; see docs/PROVIDERS.md. |
-| `OVERPASS_API_URL`          | Default supplied       | Public Overpass interpreter or your own compatible service. No key required by the public default.                                     |
-| `NEXT_PUBLIC_MAP_STYLE_URL` | Default supplied       | OpenFreeMap Positron URL, or a MapLibre-compatible style URL.                                                                          |
-| `NEXT_PUBLIC_MAP_API_KEY`   | Not used automatically | Reserved. If another map service requires a public key, insert its domain-restricted key in the style URL according to its docs.       |
-| `NEXT_PUBLIC_SITE_URL`      | Deployment metadata    | Your final Vercel URL. Share links use the browser's actual origin.                                                                    |
-| `GEMINI_API_KEY`            | Optional               | Google AI Studio API key. Missing/failure => deterministic summary.                                                                    |
-| `GEMINI_MODEL`              | AI model               | Default `gemini-2.5-flash`; choose a structured-output model available to your account if that model is unavailable.                   |
-| `DATABASE_URL`              | Live feedback only     | Neon **pooled** PostgreSQL connection string, including SSL settings.                                                                  |
-| `DIRECT_URL`                | Migration setup        | Neon direct/non-pooled PostgreSQL connection string. Falls back to `DATABASE_URL` if absent.                                           |
-| `UBER_CLIENT_ID`            | Optional               | Your approved Uber developer client ID, if available. No Uber secret or booking API is used.                                           |
-
-`NEXT_PUBLIC_*` values are public and embedded at build time. Every other API key is used only by the server. Health configuration status is available at `/api/health`; it exposes booleans, not keys, and does not claim to test provider connectivity.
-
-1. Create a [HeiGIT/openrouteservice account](https://account.heigit.org/) and obtain a directions key. Check your plan's alternative-route and directions quotas.
-2. Create a [Geoapify project](https://myprojects.geoapify.com/) and obtain an API key. This app uses server-side autocomplete; configure restrictions appropriate for server requests. Do not use public Nominatim autocomplete.
-3. Generate `SESSION_SECRET`, set those three secrets and `DEMO_MODE=false`.
-4. Run `npm run dev`; search for a short urban journey. Requests are limited to endpoints 50 m–20 km apart and a bounded infrastructure-query area. Long/winding routes can exceed the query bound even within that endpoint distance.
-5. Configure optional Gemini and Neon next. Planning continues without them.
-
-No live credentials are included. Live ORS, Geoapify, Overpass, Gemini and Neon behavior must be smoke-tested with your accounts before launch; automated tests use fixtures and mocks.
-
-## Neon feedback setup
-
-1. Create a project at [Neon](https://neon.com/).
-2. Copy its pooled connection string into `DATABASE_URL`, and direct string into `DIRECT_URL` in `.env.local`.
-3. Apply the committed migration:
-
-```bash
-npm run db:migrate
-```
-
-4. With `DEMO_MODE=false`, finish a journey and submit feedback. Check the `journey_feedback` table in Neon's SQL editor.
-
-`db:generate` is for developers changing the schema; do not generate a new initial migration during ordinary setup. The committed migration creates `journey_feedback`, `segment_observations` and `aggregate_segment_metrics`. Aggregates are reserved for a later moderated community feature and are **not** used to change scores. Optional segment observations are written in the same transaction as feedback. Unique submission and journey hashes reduce duplicate reports.
-
-Stored location references are rounded to 0.01° cells (roughly kilometre scale), not precise paths. Free-text feedback can still contain identifying details; users are asked not to include them. There is no public individual-report endpoint. Configure retention and deletion operations before collecting public feedback at scale; retention is not automated in this MVP.
-
-## Uber behavior — read before demonstrating
-
-The official [Ride Request Deep Links](https://developer.uber.com/docs/riders/ride-requests/tutorials/deep-links/introduction) document pickup and destination parameters. We did **not** find documented support there for `drop[0]` / `drop[1]`. SafarNav therefore does not invent or silently send those parameters.
-
-- Pickup and final destination are encoded in a universal `https://m.uber.com/ul/` link.
-- Intermediate candidates are only mapped public-access parking within 50 m of the selected driving route, away from its ends. Distinction from alternatives affects preference.
-- A selected candidate requires explicit consent. In real mode, ORS verifies car reachability, proximity, detour and route overlap. These checks do not establish on-site stopping legality or available parking.
-- A reviewed intermediate stop is **copied for manual entry in Uber**. The UI explicitly says it was not transmitted in the deep link. Add it before confirming a ride.
-- Demo mode never opens a live Uber booking from fictional infrastructure.
-- No booking, fare, driver tracking or trip-status API is integrated. Uber and the driver control routing. Opening Uber does not mark arrival.
-- Test actual handoff on iOS Safari and Android Chrome with/without Uber installed. Desktop behavior and unsupported link handling depend on Uber; copyable destination, stop and SafarNav journey link remain available.
-
-The share link contains the chosen endpoint coordinates and travel mode, not your location history, exact selected geometry or an active session. Recipients must calculate a fresh route. Share it only with people you intend to disclose the trip to.
-
-## Tests and checks
-
-```bash
-npm run typecheck
-npm run lint
-npm test
-npm run build
-npx playwright install chromium
-npm run test:e2e
-```
-
-On a machine with Chrome installed, you can skip downloading Chromium:
-
-```bash
-PLAYWRIGHT_CHANNEL=chrome npm run test:e2e
-```
-
-Browser tests start a local production server if one is not running. Build first. They run desktop and mobile Chrome emulation with mocked GPS and exercise comparison, Time Machine, sections, summaries, monitoring, feedback, Uber consent and error states. Real Safari, mobile OS suspension, physical-device GPS, live provider quotas and real Neon persistence require manual checks. See [verification notes](docs/VERIFICATION.md).
-
-See [the current deployment checklist](docs/DEPLOYMENT.md) for GitHub commands, real-mode variables and phone verification.
-
-## Push this project to GitHub
-
-Create an **empty** repository named `safarnav` on GitHub (do not initialize it with a README, licence or `.gitignore`, because those files are already here). Choose private or public deliberately. In your project terminal:
-
-```bash
-cd "/Users/karanbhura/CODING/VIHAAN X 9.0"
-git init
-git branch -M main
-git add .
-git status
-```
-
-Before committing, ensure `.env.local`, `node_modules`, `.next` and test reports are **not** listed. `git check-ignore .env.local` should show the filename once you have created it. Then:
-
-```bash
-git commit -m "Build SafarNav route planning app"
-git remote add origin https://github.com/YOUR_USERNAME/safarnav.git
-git push -u origin main
-```
-
-Replace `YOUR_USERNAME` with your GitHub username. Authenticate through GitHub's supported browser/credential-manager flow or personal access token; your GitHub password is not a Git-over-HTTPS password. Do not put tokens in remote URLs. If Git requests an identity, set your own name and email with `git config user.name` and `git config user.email`.
-
-If macOS reports an unaccepted Xcode licence, open Xcode and personally review/accept it (or review it with `sudo xcodebuild -license` in your terminal). The project does not need Xcode to run, but Apple's developer-tool shims can require this setup. No licence was accepted by the assistant.
-
-Later updates:
-
-```bash
-git add .
-git commit -m "Describe your change"
-git push
-```
-
-## Deploy on Vercel and view it live
-
-1. Push the repository using the steps above.
-2. Sign in to [Vercel](https://vercel.com/), choose **Add New → Project**, connect GitHub, authorize the specific repository and import `safarnav`.
-3. Select **Next.js**. Root directory is the repository root, build command is `npm run build`, install command is `npm ci`. Leave output directory at the Next.js default. Select Node.js 24.x (or an available supported version ≥22).
-4. Under Environment Variables, start with `DEMO_MODE=true` and `NEXT_PUBLIC_MAP_STYLE_URL=https://tiles.openfreemap.org/styles/positron`. This is enough for the public demo. Optionally set a generated `SESSION_SECRET` too.
-5. For real mode, add `DEMO_MODE=false`, `SESSION_SECRET`, `ORS_API_KEY`, `GEOCODING_API_KEY` and the default provider URLs. Add Gemini, Neon and Uber settings only as needed. Add secrets through Vercel's encrypted settings, never through GitHub commits.
-6. If using Neon, apply `npm run db:migrate` from your local terminal against the intended database **before** testing live feedback. Deployment does not automatically migrate your database.
-7. Click **Deploy**. Open the supplied `https://…vercel.app` URL when the build succeeds.
-8. Set `NEXT_PUBLIC_SITE_URL` to that URL and redeploy. Any changed `NEXT_PUBLIC_*` setting needs a rebuild. Ensure variables are assigned to the correct Production/Preview environments.
-9. Check `/api/health`, then route search, scoring, Time Machine, map attribution, summary and feedback. Use a separate Neon branch/database for preview deployments that collect test feedback.
-10. Future pushes to `main` trigger production deployments through the Git integration. Branch pull requests normally create previews. Do not enable public live-provider traffic without configuring appropriate provider budgets and Vercel firewall/rate protections.
-
-No custom domain is required. HTTPS on Vercel supports browser geolocation. A site served over plain HTTP on a phone's LAN address may not have location access; use HTTPS for physical-device testing.
-
-Official deployment references: [Next.js on Vercel](https://vercel.com/docs/frameworks/full-stack/nextjs), [builds and Git deployments](https://vercel.com/docs/builds), [environment variables](https://vercel.com/docs/environment-variables/managing-environment-variables).
-
-## Approval and account boundaries
-
-Local file creation and checks are ordinary development work. This environment required permission for npm network access, building with worker processes, and local server/browser testing. Publishing, account connections, accepting provider terms, enabling paid services, supplying keys and applying migrations to your real database are separate setup actions. This build does not create third-party accounts, accept their terms, spend money, book rides, push to GitHub or deploy to Vercel.
-
-## Architecture and limitations
-
-See [architecture and scoring](docs/ARCHITECTURE.md), [provider terms and limits](docs/PROVIDERS.md) and [verification](docs/VERIFICATION.md).
-
-The main next steps are real-account smoke tests, physical-device tests, a durable shared rate limiter/cache, better road-to-route map matching and measured performance under real infrastructure density. The heuristic weights are initial assumptions, not scientifically validated risk coefficients. No crime predictions, demographic proxies, live crowd levels or camera operation are inferred.
+Further details are documented in the [architecture](docs/ARCHITECTURE.md), [provider notes](docs/PROVIDERS.md), [verification record](docs/VERIFICATION.md) and [deployment checklist](docs/DEPLOYMENT.md).
