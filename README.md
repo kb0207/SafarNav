@@ -1,5 +1,10 @@
 # SafarNav
 
+<p align="center">
+    <img width="712" height="1598" alt="WhatsApp Image 2026-11-15 at 9 16 25 AM" src="https://github.com/user-attachments/assets/683512d5-73fd-49ae-8015-7da441b7d302" />
+    <img width="1470" height="883" alt="Screenshot 2026-11-15 at 9 15 26 AM" src="https://github.com/user-attachments/assets/9ee6130c-1429-4e3c-9161-5d25071fd9d4" />
+</p>
+
 **Not just the shortest route. The safer one.**
 
 SafarNav compares driving and walking routes using mapped infrastructure, travel time and conditions at the planned departure time. It considers road suitability, lighting, nearby facilities, mapped cameras and expected business opening hours. Its scoring engine evaluates individual sections and gives weaker stretches extra influence on the final indicator.
