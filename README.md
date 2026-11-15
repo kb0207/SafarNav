@@ -1,4 +1,6 @@
-# SafarNav
+<p align="center">
+  <img src="docs/images/safarnav-logo.png" alt="SafarNav" width="480">
+</p>
 
 **Not just the shortest route. The safer one.**
 
