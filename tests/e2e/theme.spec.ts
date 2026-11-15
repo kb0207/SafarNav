@@ -65,9 +65,6 @@ test("both themes retain readable branding, body text, icons and route details",
       ".mode-toggle .selected",
       ".place-search input",
       ".sidebar-footer p",
-      ".map-legend",
-      ".map-legend span",
-      ".map-legend p",
     ])) {
       expect(
         result.ratio,

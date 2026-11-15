@@ -891,15 +891,6 @@ export default function Planner({
             location={location}
             recenter={recenter}
           />
-          <div className="map-heading">
-            <span className="map-city">
-              <span />
-              {demo ? "NEW DELHI, INDIA" : "YOUR JOURNEY"}
-            </span>
-            <span className="map-subtitle">
-              A little more insight. A little more peace of mind.
-            </span>
-          </div>
           {pick && (
             <div role="status" className="pick-banner">
               Tap the map to set your {pick}.
@@ -913,24 +904,6 @@ export default function Planner({
           >
             <LocateFixed size={20} />
           </button>
-          <div className="map-legend">
-            <strong>Every route tells a story</strong>
-            <div>
-              <span>
-                <i className="legend-line" />
-                Selected route
-              </span>
-              <span>
-                <i className="legend-line weak" />
-                Lower-scoring sections
-              </span>
-              <span>
-                <i className="legend-line unknown" />
-                Limited evidence
-              </span>
-            </div>
-            <p>Tap a point or highlighted section for details.</p>
-          </div>
           <div className="map-attribution">
             <a
               href="https://www.openstreetmap.org/copyright"
