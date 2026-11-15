@@ -6,6 +6,35 @@ SafarNav compares driving and walking routes using mapped infrastructure, travel
 
 Gemini explains the calculated results; it does not assign scores. A computed summary remains available when the API is unconfigured or unavailable.
 
+## One journey. Every screen.
+
+A spacious map on your laptop. A compact planner on your phone.
+
+<table>
+  <thead>
+    <tr>
+      <th width="78%" align="left">Laptop</th>
+      <th width="22%" align="left">Phone</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td valign="top">
+        <a href="docs/images/safarnav-desktop.png">
+          <img src="docs/images/safarnav-desktop.png" alt="SafarNav on a laptop, with the route planner beside a wide interactive map" width="100%">
+        </a>
+      </td>
+      <td valign="top">
+        <a href="docs/images/safarnav-mobile.jpeg">
+          <img src="docs/images/safarnav-mobile.jpeg" alt="SafarNav on a phone, with the map above the compact journey planner" width="100%">
+        </a>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+_Select either screenshot to view it at full size._
+
 ## Features
 
 - **Route comparison:** compare available routes by infrastructure indicator, distance and travel time.
@@ -89,6 +118,7 @@ The interface uses locally available [Arial](https://learn.microsoft.com/en-us/t
 ├── postcss.config.mjs
 ├── vitest.config.mts
 ├── docs/
+│   └── images/
 ├── drizzle/
 │   └── meta/
 ├── public/
@@ -126,7 +156,7 @@ The interface uses locally available [Arial](https://learn.microsoft.com/en-us/t
 - [src/app/api/](src/app/api/) contains server-side endpoints for planning, rescoring, summaries and feedback.
 - [src/lib/providers/](src/lib/providers/) isolates external services and demo fixtures from application logic.
 - [src/lib/scoring/](src/lib/scoring/) contains deterministic scoring, schedule evaluation and camera metrics.
-- [public/](public/) contains the SVG application icon, web manifest and notification service worker. MapLibre worker assets are generated during development and builds and excluded from Git. There is no separate image directory.
+- [public/](public/) contains the SVG application icon, web manifest and notification service worker. MapLibre worker assets are generated during development and builds and excluded from Git. README screenshots are stored in [docs/images/](docs/images/).
 - [drizzle/](drizzle/) contains SQL migrations and migration metadata.
 - [tests/](tests/) contains unit and component tests; [tests/e2e/](tests/e2e/) covers browser journeys and theme contrast.
 
